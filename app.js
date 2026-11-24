@@ -8,6 +8,7 @@ const $ = (id) => document.getElementById(id);
 const storage = {
   getItem: (key) => window.localStorage.getItem(key),
   setItem: (key, value) => window.localStorage.setItem(key, value),
+  removeItem: (key) => window.localStorage.removeItem(key),
 };
 const state = loadState(storage);
 const dateLabel = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });

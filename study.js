@@ -139,6 +139,17 @@ function readSaved(storage, key, fallback = null) {
   }
 }
 
+function migrateLegacy(storage, state) {
+  try {
+    for (const [slice, value] of Object.entries(state)) {
+      if (storage.getItem(`${STORAGE_KEY}.${slice}`) === null && !saveSlice(storage, slice, value)) return;
+    }
+    storage.removeItem(STORAGE_KEY);
+  } catch {
+    // Keep the legacy data if storage prevents migration.
+  }
+}
+
 export function loadState(storage) {
   const legacy = readSaved(storage, STORAGE_KEY);
   const candidate = readSaved(storage, `${STORAGE_KEY}.timer`, legacy?.timer);
@@ -147,11 +158,13 @@ export function loadState(storage) {
   const log = Array.isArray(candidate?.log) ? candidate.log.filter(
     (entry) => entry && validTimestamp(entry.endedAt) && durationOK(entry.minutes),
   ) : [];
-  return {
+  const state = {
     timer: { ...(validTimer(candidate) ? candidate : createTimer()), log },
     tasks: Array.isArray(tasks) ? tasks.filter(validTask) : [],
     cards: Array.isArray(cards) ? cards.filter(validCard) : [],
   };
+  if (legacy && typeof legacy === 'object') migrateLegacy(storage, state);
+  return state;
 }
 
 export function saveSlice(storage, slice, value) {

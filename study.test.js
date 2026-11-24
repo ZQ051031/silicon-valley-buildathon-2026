@@ -13,6 +13,7 @@ const store = (raw = null) => {
   return {
     getItem: (key) => entries.get(key) ?? null,
     setItem: (key, value) => { entries.set(key, value); },
+    removeItem: (key) => { entries.delete(key); },
   };
 };
 
@@ -153,6 +154,32 @@ test('writes from stale tabs preserve other slices and untouched legacy data', (
 
   assert.equal(saveSlice(storage, 'tasks', []), true);
   assert.deepEqual(loadState(storage), { timer, tasks: [], cards: tabB.cards });
+});
+
+test('migration removes the legacy key without overwriting existing slices', () => {
+  const timer = toggleTimer(createTimer(), 0);
+  const cards = addCard([], 'b', 'Q', 'A', today);
+  const storage = store(JSON.stringify({ timer, tasks: addTask([], 'old', fields), cards }));
+  assert.equal(saveSlice(storage, 'tasks', []), true);
+  assert.deepEqual(loadState(storage), { timer, tasks: [], cards });
+  assert.equal(storage.getItem(STORAGE_KEY), null);
+  assert.deepEqual(loadState(storage), { timer, tasks: [], cards });
+});
+
+test('migration retains the legacy key until a failed slice write can be retried', () => {
+  const state = { timer: createTimer(), tasks: addTask([], 'a', fields), cards: [] };
+  const legacy = JSON.stringify(state);
+  const storage = store(legacy);
+  const setItem = storage.setItem;
+  storage.setItem = (key, value) => {
+    if (key === `${STORAGE_KEY}.tasks`) throw new Error('No storage space');
+    setItem(key, value);
+  };
+  assert.deepEqual(loadState(storage), state);
+  assert.equal(storage.getItem(STORAGE_KEY), legacy);
+  storage.setItem = setItem;
+  assert.deepEqual(loadState(storage), state);
+  assert.equal(storage.getItem(STORAGE_KEY), null);
 });
 
 test('storage handles corrupted, partly malformed and inaccessible data', () => {
