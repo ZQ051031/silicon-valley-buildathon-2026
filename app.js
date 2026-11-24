@@ -1,7 +1,7 @@
 import {
   MINUTE, advanceTimer, timeLeft, toggleTimer, resetTimer, configureTimer, localDay,
   addTask, editTask, toggleTask, deleteTask, filterTasks, addCard, reviewCard, dueCards,
-  loadState, saveSlice,
+  loadState, createSliceSaver,
 } from './study.js';
 
 const $ = (id) => document.getElementById(id);
@@ -11,6 +11,7 @@ const storage = {
   removeItem: (key) => window.localStorage.removeItem(key),
 };
 const state = loadState(storage);
+const save = createSliceSaver(storage);
 const dateLabel = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 const logLabel = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 const weekday = new Intl.DateTimeFormat(undefined, { weekday: 'long' });
@@ -22,7 +23,7 @@ let displayedCard = null;
 let revealed = false;
 
 function persist(slice) {
-  $('storage-warning').hidden = saveSlice(storage, slice, state[slice]);
+  $('storage-warning').hidden = save(slice, state[slice]);
 }
 
 function id() {

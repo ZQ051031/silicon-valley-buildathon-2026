@@ -175,3 +175,12 @@ export function saveSlice(storage, slice, value) {
     return false;
   }
 }
+
+export function createSliceSaver(storage) {
+  const failed = new Set();
+  return (slice, value) => {
+    if (saveSlice(storage, slice, value)) failed.delete(slice);
+    else failed.add(slice);
+    return failed.size === 0;
+  };
+}

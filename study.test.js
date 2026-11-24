@@ -3,7 +3,7 @@ import test from 'node:test';
 import {
   MINUTE, STORAGE_KEY, createTimer, advanceTimer, timeLeft, toggleTimer, resetTimer, configureTimer,
   localDay, addTask, editTask, toggleTask, deleteTask, filterTasks, addCard, reviewCard, dueCards,
-  loadState, saveSlice,
+  loadState, saveSlice, createSliceSaver,
 } from './study.js';
 
 const today = '2028-02-28';
@@ -193,4 +193,20 @@ test('storage handles corrupted, partly malformed and inaccessible data', () => 
   const inaccessible = { getItem() { throw Error(); }, setItem() { throw Error(); } };
   assert.deepEqual(loadState(inaccessible), initial);
   assert.equal(saveSlice(inaccessible, 'timer', initial.timer), false);
+});
+
+test('save status stays unsaved until each failing slice saves successfully', () => {
+  const blocked = new Set([`${STORAGE_KEY}.tasks`, `${STORAGE_KEY}.cards`]);
+  const save = createSliceSaver({
+    setItem(key) {
+      if (blocked.has(key)) throw new Error('No storage space');
+    },
+  });
+  assert.equal(save('tasks', []), false);
+  assert.equal(save('cards', []), false);
+  assert.equal(save('timer', createTimer()), false);
+  blocked.delete(`${STORAGE_KEY}.tasks`);
+  assert.equal(save('tasks', []), false);
+  blocked.delete(`${STORAGE_KEY}.cards`);
+  assert.equal(save('cards', []), true);
 });
