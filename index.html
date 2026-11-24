@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A local-first study desk with a focus timer, task planner, and spaced review queue.">
+  <meta name="theme-color" content="#f6f4ed">
+  <title>StudySprint — Your study desk</title>
+  <link rel="icon" href="./mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap topbar">
+      <a class="brand" href="#"><img src="./mark.svg" width="38" height="38" alt=""> StudySprint</a>
+      <nav aria-label="Study tools">
+        <a href="#focus">Focus</a><a href="#plan">Plan</a><a href="#review">Review</a>
+      </nav>
+      <span class="local"><i></i> On this device</span>
+    </div>
+  </header>
+
+  <main id="main" class="wrap" tabindex="-1">
+    <header class="hero">
+      <div>
+        <p class="eyebrow"><span class="dash"></span> YOUR STUDY DESK</p>
+        <h1>Make time <em>stick.</em></h1>
+        <p>Focus on one thing, plan what’s next, and remember what you learn.</p>
+      </div>
+      <div id="date-stamp" class="date-stamp" aria-label="Today">
+        <span id="weekday"></span><strong id="date"></strong>
+      </div>
+    </header>
+
+    <p class="storage-warning" id="storage-warning" role="alert" hidden>Browser storage is unavailable. You can still use StudySprint, but new changes may not survive a reload.</p>
+
+    <div class="desk">
+      <section id="focus" class="panel focus-panel" aria-labelledby="focus-heading">
+        <header class="panel-heading">
+          <div class="section-no">01 <span>/</span> FOCUS</div>
+          <h2 id="focus-heading">Focus timer</h2>
+          <p>Give one task your full attention.</p>
+        </header>
+        <div class="timer-face" id="timer-face">
+          <span id="phase" class="phase">Focus</span>
+          <div id="clock" role="timer" aria-label="Time remaining">25:00</div>
+          <progress id="progress" value="0" max="1" aria-label="Current phase progress"></progress>
+        </div>
+        <div class="timer-controls">
+          <button id="start" class="action" type="button">Start focus</button>
+          <button id="reset" class="secondary" type="button">Reset</button>
+        </div>
+        <div class="timer-meta">
+          <span id="session-count" class="count">0 sessions</span>
+          <details id="timer-settings">
+            <summary>Timer settings</summary>
+            <form id="timer-form" class="settings-form">
+              <label>Focus (min)<input type="number" id="focus-minutes" min="1" max="180" step="1" required value="25"></label>
+              <label>Break (min)<input type="number" id="break-minutes" min="1" max="180" step="1" required value="5"></label>
+              <button class="small secondary" type="submit">Save lengths</button>
+            </form>
+          </details>
+        </div>
+        <details class="session-details">
+          <summary>Session log</summary>
+          <div id="session-log"></div>
+        </details>
+        <p id="timer-status" class="sr-only" role="status"></p>
+      </section>
+
+      <section id="plan" class="panel plan-panel" aria-labelledby="plan-heading">
+        <header class="panel-heading">
+          <div class="section-no">02 <span>/</span> PLAN</div>
+          <h2 id="plan-heading">Task planner</h2>
+          <p>Turn study goals into next steps.</p>
+        </header>
+        <form id="task-form">
+          <label for="task-title">Task</label>
+          <input id="task-title" type="text" maxlength="120" required placeholder="e.g. Outline the history essay">
+          <div class="task-fields">
+            <label>Priority
+              <select id="task-priority">
+                <option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option>
+              </select>
+            </label>
+            <label>Due date <span>(optional)</span><input id="task-due" type="date" max="9999-12-31"></label>
+            <button id="task-submit" class="action" type="submit">Add task</button>
+          </div>
+          <button id="task-cancel" class="text-button" type="button" hidden>Cancel edit</button>
+        </form>
+        <div class="list-toolbar">
+          <div id="filters" class="filters" aria-label="Filter tasks" role="group">
+            <button type="button" data-filter="all" aria-pressed="true">All</button>
+            <button type="button" data-filter="open" aria-pressed="false">Open</button>
+            <button type="button" data-filter="today" aria-pressed="false">Due today</button>
+            <button type="button" data-filter="done" aria-pressed="false">Done</button>
+          </div>
+          <span id="task-count" class="count">0 open</span>
+        </div>
+        <ul id="task-list" class="task-list"></ul>
+        <p id="task-empty" class="empty"></p>
+        <p id="task-status" class="feedback" role="status"></p>
+      </section>
+
+      <section id="review" class="panel review-panel" aria-labelledby="review-heading">
+        <header class="panel-heading">
+          <div class="section-no">03 <span>/</span> REVIEW</div>
+          <h2 id="review-heading">Spaced review</h2>
+          <p>Recall it today so you’ll remember it later.</p>
+        </header>
+        <div class="review-grid">
+          <form id="card-form">
+            <h3>Create a card</h3>
+            <label for="question">Question</label>
+            <textarea id="question" rows="2" maxlength="240" required placeholder="What do you want to remember?"></textarea>
+            <label for="answer">Answer</label>
+            <textarea id="answer" rows="2" maxlength="1000" required placeholder="Write the answer in your own words."></textarea>
+            <button class="action" type="submit">Add card</button>
+          </form>
+          <div class="queue">
+            <div class="queue-heading">
+              <h3>Due today</h3><span id="review-count" class="count">0 due</span>
+            </div>
+            <div id="review-empty" class="empty">No cards due. Add a card to start practicing.</div>
+            <div id="review-card" hidden>
+              <p id="review-question" class="question" tabindex="-1"></p>
+              <button id="reveal" class="secondary" type="button" aria-controls="revealed">Reveal answer</button>
+              <div id="revealed" hidden>
+                <p id="review-answer" class="answer" tabindex="-1"></p>
+                <p class="rating-help">How well did you recall it?</p>
+                <div id="ratings" class="ratings" role="group" aria-label="Rate recall">
+                  <button class="secondary" type="button" data-rating="again">Again</button>
+                  <button class="secondary" type="button" data-rating="hard">Hard</button>
+                  <button class="action" type="button" data-rating="easy">Easy</button>
+                </div>
+              </div>
+            </div>
+            <div id="next-review" class="next-review" hidden></div>
+            <p id="review-status" class="feedback" role="status" tabindex="-1"></p>
+          </div>
+        </div>
+      </section>
+    </div>
+    <noscript><p class="storage-warning">StudySprint needs JavaScript to run the timer and save your work.</p></noscript>
+  </main>
+
+  <footer class="wrap footer">
+    <strong>StudySprint</strong><span>Saved in this browser. No accounts, no uploads.</span>
+  </footer>
+</body>
+</html>
