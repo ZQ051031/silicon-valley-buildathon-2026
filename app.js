@@ -1,7 +1,7 @@
 import {
   MINUTE, advanceTimer, timeLeft, toggleTimer, resetTimer, configureTimer, localDay,
   addTask, editTask, toggleTask, deleteTask, filterTasks, addCard, reviewCard, dueCards,
-  loadState, saveState,
+  loadState, saveSlice,
 } from './study.js';
 
 const $ = (id) => document.getElementById(id);
@@ -20,8 +20,8 @@ let editingId = null;
 let displayedCard = null;
 let revealed = false;
 
-function persist() {
-  $('storage-warning').hidden = saveState(storage, state);
+function persist(slice) {
+  $('storage-warning').hidden = saveSlice(storage, slice, state[slice]);
 }
 
 function id() {
@@ -74,7 +74,7 @@ function syncTimer(now) {
   const next = advanceTimer(state.timer, now);
   if (next !== state.timer) {
     state.timer = next;
-    persist();
+    persist('timer');
     renderSessions();
     $('timer-status').textContent = next.mode === 'break'
       ? 'Focus session logged. Your break is ready.' : 'Break complete. Your next focus session is ready.';
@@ -86,7 +86,7 @@ $('start').addEventListener('click', () => {
   const now = Date.now();
   syncTimer(now);
   state.timer = toggleTimer(state.timer, now);
-  persist();
+  persist('timer');
   renderTimer(now);
 });
 
@@ -94,7 +94,7 @@ $('reset').addEventListener('click', () => {
   const now = Date.now();
   syncTimer(now);
   state.timer = resetTimer(state.timer, now);
-  persist();
+  persist('timer');
   renderTimer(now);
   $('timer-status').textContent = 'Timer reset.';
 });
@@ -104,7 +104,7 @@ $('timer-form').addEventListener('submit', (event) => {
   const now = Date.now();
   syncTimer(now);
   state.timer = configureTimer(state.timer, $('focus-minutes').valueAsNumber, $('break-minutes').valueAsNumber, now);
-  persist();
+  persist('timer');
   renderTimer(now);
   $('timer-settings').open = false;
   $('timer-settings').querySelector('summary').focus();
@@ -140,7 +140,7 @@ function renderTasks(focusId) {
     checkbox.setAttribute('aria-label', task.title);
     checkbox.addEventListener('change', () => {
       state.tasks = toggleTask(state.tasks, task.id);
-      persist();
+      persist('tasks');
       renderTasks(task.id);
       $('task-status').textContent = checkbox.checked ? 'Task completed.' : 'Task reopened.';
     });
@@ -164,7 +164,7 @@ function renderTasks(focusId) {
       taskAction('Delete', task, () => {
         state.tasks = deleteTask(state.tasks, task.id);
         if (editingId === task.id) clearTaskForm();
-        persist();
+        persist('tasks');
         renderTasks(task.id);
         $('task-status').textContent = 'Task deleted.';
       }),
@@ -204,7 +204,7 @@ $('task-form').addEventListener('submit', (event) => {
     $('task-status').textContent = error.message;
     return;
   }
-  persist();
+  persist('tasks');
   clearTaskForm();
   if (!target) setFilter('all');
   else renderTasks();
@@ -265,7 +265,7 @@ $('card-form').addEventListener('submit', (event) => {
     $('review-status').textContent = error.message;
     return;
   }
-  persist();
+  persist('cards');
   $('card-form').reset();
   renderReview();
   $('review-status').textContent = 'Card added to today’s queue.';
@@ -294,7 +294,7 @@ $('ratings').addEventListener('click', (event) => {
     return;
   }
   const rated = state.cards.find((card) => card.id === current);
-  persist();
+  persist('cards');
   renderReview();
   $('review-status').textContent = `Card scheduled for ${friendlyDate(rated.due)} (${rated.interval} ${rated.interval === 1 ? 'day' : 'days'}).`;
   $(displayedCard ? 'review-question' : 'review-status').focus();

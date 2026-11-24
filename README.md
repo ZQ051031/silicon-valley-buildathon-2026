@@ -32,11 +32,13 @@ Run the dependency-free tests with Node.js 20 or newer:
 npm test
 ```
 
-**Result: 12 passed, 0 failed** (Node.js 22). The tests cover timer pause/resume, reset, exact deadlines and one-time logging; task CRUD, filters, blank inputs, and invalid dates; all three review ratings, leap-day rollover and interval bounds; and storage round-trips, corrupt data, and unavailable storage.
+**Result: 13 passed, 0 failed** (Node.js 22). The tests cover timer pause/resume, reset, exact deadlines and one-time logging; task CRUD, filters, blank inputs, and invalid dates; all three review ratings, leap-day rollover and interval bounds; and storage round-trips, stale tabs, corrupt data, and unavailable storage.
 
 **Browser verification:** In headless Chrome, exercised all three tools, reloaded during a running timer and after saving tasks and cards, advanced to the next day to check the review queue, and exercised the review flow at 390 px wide with no horizontal overflow. No console errors or external requests were observed.
 
 **Iteration:** The first browser check clicked the completion checkbox but then waited for it to stay visible. In the **Due today** filter, completing it correctly removes it. The revised check verifies that it disappears from **Due today**, appears checked in **Done**, and stays checked after reload.
+
+**Two-tab fix:** After reproducing a task lost when another tab saved a card, we stored timer, planner, and review data separately and verified both changes survived reload.
 
 The [timed demo script](./DEMO_SCRIPT.md) walks through the three tools in 2 minutes 35 seconds.
 

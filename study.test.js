@@ -3,15 +3,18 @@ import test from 'node:test';
 import {
   MINUTE, STORAGE_KEY, createTimer, advanceTimer, timeLeft, toggleTimer, resetTimer, configureTimer,
   localDay, addTask, editTask, toggleTask, deleteTask, filterTasks, addCard, reviewCard, dueCards,
-  loadState, saveState,
+  loadState, saveSlice,
 } from './study.js';
 
 const today = '2028-02-28';
 const fields = { title: ' Outline essay ', priority: 'high', due: today };
-const store = (raw = null) => ({
-  getItem: (key) => (assert.equal(key, STORAGE_KEY), raw),
-  setItem: (key, value) => { assert.equal(key, STORAGE_KEY); raw = value; },
-});
+const store = (raw = null) => {
+  const entries = new Map([[STORAGE_KEY, raw]]);
+  return {
+    getItem: (key) => entries.get(key) ?? null,
+    setItem: (key, value) => { entries.set(key, value); },
+  };
+};
 
 test('timer pauses and resumes from its actual deadline', () => {
   let timer = toggleTimer(createTimer(), 1_000);
@@ -131,8 +134,25 @@ test('storage round-trips the running timer, log, tasks and review cards', () =>
   const storage = store();
   const timer = toggleTimer(advanceTimer(toggleTimer(createTimer(), 0), 25 * MINUTE), 25 * MINUTE);
   const state = { timer, tasks: addTask([], 'a', fields), cards: addCard([], 'b', 'Q', 'A', today) };
-  assert.equal(saveState(storage, state), true);
+  for (const [slice, value] of Object.entries(state)) assert.equal(saveSlice(storage, slice, value), true);
   assert.deepEqual(loadState(storage), state);
+});
+
+test('writes from stale tabs preserve other slices and untouched legacy data', () => {
+  const timer = toggleTimer(createTimer(), 0);
+  const legacyTasks = addTask([], 'old', fields);
+  const storage = store(JSON.stringify({ timer, tasks: legacyTasks, cards: [] }));
+  const tabA = loadState(storage);
+  const tabB = loadState(storage);
+
+  tabA.tasks = addTask(tabA.tasks, 'new', { ...fields, title: 'Write draft' });
+  assert.equal(saveSlice(storage, 'tasks', tabA.tasks), true);
+  tabB.cards = addCard(tabB.cards, 'b', 'Q', 'A', today);
+  assert.equal(saveSlice(storage, 'cards', tabB.cards), true);
+  assert.deepEqual(loadState(storage), { timer, tasks: tabA.tasks, cards: tabB.cards });
+
+  assert.equal(saveSlice(storage, 'tasks', []), true);
+  assert.deepEqual(loadState(storage), { timer, tasks: [], cards: tabB.cards });
 });
 
 test('storage handles corrupted, partly malformed and inaccessible data', () => {
@@ -145,5 +165,5 @@ test('storage handles corrupted, partly malformed and inaccessible data', () => 
   }))), { ...initial, tasks, timer: { ...initial.timer, log: [{ minutes: 25, endedAt: 25 * MINUTE }] } });
   const inaccessible = { getItem() { throw Error(); }, setItem() { throw Error(); } };
   assert.deepEqual(loadState(inaccessible), initial);
-  assert.equal(saveState(inaccessible, initial), false);
+  assert.equal(saveSlice(inaccessible, 'timer', initial.timer), false);
 });

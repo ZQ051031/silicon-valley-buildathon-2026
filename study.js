@@ -130,28 +130,33 @@ const validTimer = (timer) => timer && durationOK(timer.focus) && durationOK(tim
   && timer.remaining > 0 && timer.remaining <= timer[timer.mode] * MINUTE
   && (timer.deadline === null || validTimestamp(timer.deadline));
 
-export function loadState(storage) {
-  const initial = { timer: createTimer(), tasks: [], cards: [] };
-  let saved;
+function readSaved(storage, key, fallback = null) {
   try {
-    saved = JSON.parse(storage.getItem(STORAGE_KEY));
+    const value = storage.getItem(key);
+    return value === null ? fallback : JSON.parse(value);
   } catch {
-    return initial;
+    return null;
   }
-  const candidate = saved?.timer;
+}
+
+export function loadState(storage) {
+  const legacy = readSaved(storage, STORAGE_KEY);
+  const candidate = readSaved(storage, `${STORAGE_KEY}.timer`, legacy?.timer);
+  const tasks = readSaved(storage, `${STORAGE_KEY}.tasks`, legacy?.tasks);
+  const cards = readSaved(storage, `${STORAGE_KEY}.cards`, legacy?.cards);
   const log = Array.isArray(candidate?.log) ? candidate.log.filter(
     (entry) => entry && validTimestamp(entry.endedAt) && durationOK(entry.minutes),
   ) : [];
   return {
-    timer: { ...(validTimer(candidate) ? candidate : initial.timer), log },
-    tasks: Array.isArray(saved?.tasks) ? saved.tasks.filter(validTask) : [],
-    cards: Array.isArray(saved?.cards) ? saved.cards.filter(validCard) : [],
+    timer: { ...(validTimer(candidate) ? candidate : createTimer()), log },
+    tasks: Array.isArray(tasks) ? tasks.filter(validTask) : [],
+    cards: Array.isArray(cards) ? cards.filter(validCard) : [],
   };
 }
 
-export function saveState(storage, state) {
+export function saveSlice(storage, slice, value) {
   try {
-    storage.setItem(STORAGE_KEY, JSON.stringify(state));
+    storage.setItem(`${STORAGE_KEY}.${slice}`, JSON.stringify(value));
     return true;
   } catch {
     return false;
